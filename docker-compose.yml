@@ -38,7 +38,7 @@ services:
       retries: 3
     networks:
       - OST2-network
-      
+
   spark:
     image: 'bitnami/spark:3'
     ports:
@@ -68,6 +68,51 @@ services:
       - INFLUXDB_USER_PASSWORD=user123
     healthcheck:
       test: ["CMD", "influx", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - OST2-network
+  telegraf:
+    image: 'telegraf:latest'
+    volumes:
+      - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+    depends_on:
+      - influxdb
+    healthcheck:
+      test: ["CMD", "telegraf", "config", "-test"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - OST2-network
+
+  chronograf:
+    image: 'chronograf:latest'
+    ports:
+      - "8888:8888"
+    environment:
+      - INFLUXDB_URL=http://influxdb:8086
+    depends_on:
+      - influxdb
+    healthcheck:
+      test: ["CMD", "chronograf", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - OST2-network
+
+  grafana:
+    image: 'grafana/grafana:latest'
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - influxdb
+    healthcheck:
+      test: ["CMD", "grafana-cli", "admin", "reset-admin-password", "admin"]
       interval: 10s
       timeout: 5s
       retries: 3
